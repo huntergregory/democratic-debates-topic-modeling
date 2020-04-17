@@ -1,0 +1,36 @@
+---
+title: "EDA"
+author: "Hunter Gregory"
+date: "4/5/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data = read.csv("debate_transcripts_v3_2020-02-26.csv")
+```
+
+```{r}
+unique(data$debate_section)
+```
+
+```{r}
+for (sect in unique(data$debate_section)) {
+  indices = data$debate_section == sect
+  print("SECTION NAME and SPEECH COUNT")
+  print(sprintf("%s speeches %s", sum(indices), sect))
+  print("DEBATE NAMES")
+  print(as.character(unique(data$debate_name[indices])))
+  print("")
+}
+```
+
+## TODO
+- number of speeches for each debate and for each section in debate (walk through debate by debate)
+- most frequent words used
+
+
+
