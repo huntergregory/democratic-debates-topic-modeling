@@ -30,9 +30,12 @@ for (i in 1:dim(data)[1]){
     curr_bool <- !curr_bool
     curr_doc <- ""
   }
-  curr_doc <- paste(curr_doc, data$speech[i])
+  curr_doc <- paste(curr_doc, data$preprocessed_speech[i])
 }
 doc_list <- c(doc_list, curr_doc)
+char_lengths = nchar(doc_list)
+if (sort(unique(char_lengths))[1] == 0)
+  print("WARNING: some docs have length 0")
 ```
 
 
