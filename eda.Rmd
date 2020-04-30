@@ -10,8 +10,31 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-data = read.csv("debate_transcripts_v3_2020-02-26.csv")
+data = read.csv("debates_2020_updated.csv")
 ```
+
+
+```{r fixing-data-input}
+data['candidate'] = ifelse(data['candidate'] == "True", TRUE, FALSE)[,1]
+data['X'] <- data['X'] + 1 # readjusting for r indexing
+```
+
+```{r creating-document-separation}
+doc_starts <- data$X[data$candidate]
+doc_list <- c()
+curr_doc <- ""
+curr_bool <- FALSE
+for (i in 1:dim(data)[1]){
+  if (!curr_bool == data$candidate[i]){
+    doc_list <- c(doc_list, curr_doc)
+    curr_bool <- !curr_bool
+    curr_doc <- ""
+  }
+  curr_doc <- paste(curr_doc, data$speech[i])
+}
+doc_list <- c(doc_list, curr_doc)
+```
+
 
 ```{r}
 unique(data$debate_section)
