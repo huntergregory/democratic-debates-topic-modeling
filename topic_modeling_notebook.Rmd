@@ -1,14 +1,29 @@
-# Load packages
+---
+title: "Democratic Debates Topic Modeling"
+author: "Hunter Gregory and Pouya Mohammadi"
+date: "4/30/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load-packages, include=FALSE}
 library(ggplot2)
 library(reshape2)
+library(lda)
 library(LDAvis)
-library(lda) # cora dataset
 library(servr)
 theme_set(theme_bw())
+```
 
+```{r, include=FALSE}
 # data(cora.documents) #corpus data (in bag-of-words representation)
 # data(cora.vocab) #corpus vocabulary
+```
 
+```{r, include=FALSE}
 ## TESTING
 # doc1 = type.convert(matrix(c(c(1, 5), c(0,8)), nrow=2))
 # doc2 = type.convert(matrix(c(c(1, 3), c(2, 1)), nrow=2))
@@ -16,21 +31,74 @@ theme_set(theme_bw())
 # ourDocs = list(doc1, doc2)
 # ourVocab = c('hi', 'test', 'bad', 'same')
 # ourVocabDict['hello'] = 10
+```
 
+```{r, include=FALSE}
 # setwd('OneDrive - Duke University/Documents/Duke/6th semester/Bayes/project/')
+```
+
+```{r load-data}
 og20 = read.csv("debate_transcripts_v3_2020-02-26.csv")
 data20 = read.csv("debates_2020_updated.csv")
 dictionaryData = read.csv("dictionary.csv")
-ourVocabDict = list()
+ourVocabDict = list() ## NOTE, this is the 0-index of the word, not 1-indexed like in R
 for (k in 1:nrow(dictionaryData)) {
   word = as.character(dictionaryData[k,'word'])
-  ourVocabDict[word] = k
+  ourVocabDict[word] = k-1
 }
-ourVocab = names(ourVocabDict)
+ourVocab = names(ourVocabDict) # a given word is at index ourVocabDict[[word]] + 1
+```
 
-ourDocs; # TODO set this
+```{r fixing-data-input}
+data20['candidate'] = ifelse(data20['candidate'] == "True", TRUE, FALSE)[,1]
+data20['X'] <- data20['X'] + 1 # readjusting for r indexing
+```
 
-K <- 10 ## No. topics
+```{r creating-document-separation}
+doc_starts <- data20$X[data20$candidate]
+doc_list <- c()
+doc_start_index_list = c(1)
+curr_doc <- ""
+curr_bool <- FALSE
+for (i in 1:dim(data20)[1]){
+  if (!curr_bool == data20$candidate[i]){
+    doc_list <- c(doc_list, curr_doc)
+    curr_bool <- !curr_bool
+    curr_doc <- ""
+    doc_start_index_list = c(doc_start_index_list, i)
+  }
+  curr_doc <- paste(curr_doc, data20$preprocessed_speech[i])
+}
+doc_list <- c(doc_list, curr_doc)
+char_lengths = nchar(doc_list)
+if (sort(unique(char_lengths))[1] == 0)
+  print("WARNING: some docs have length 0")
+```
+
+```{r bow-docs}
+ourDocs = list()
+for (k in 1:length(doc_list)) {
+  doc = trimws(doc_list[k])
+  word_counts = table(strsplit(doc, ' '))
+  words = names(word_counts)
+  counts = as.vector(word_counts)
+  bow = matrix(0, nrow=2, ncol=length(word_counts))
+  for (j in 1:length(words)) {
+    if (length(ourVocabDict[[words[j]]]) == 0) {
+      print(k)
+      print(words[j])
+      print(j)
+    }
+    bow[1,j] = ourVocabDict[[words[j]]]
+    bow[2,j] = counts[j]
+  }
+  bow = type.convert(bow)
+  ourDocs[[k]] = bow
+}
+```
+
+```{r modeling}
+K <- 20 ## No. topics
 S <- 1000 ## No. iterations
 alpha <- 0.1 ## scalar Dirichlet hyperparameter for topic proportions
 eta <- 0.1 ## scalar Dirichlet hyperparameter for word proportions
@@ -42,8 +110,9 @@ result <- lda.collapsed.gibbs.sampler(ourDocs, # corpus documents
                                       alpha, 
                                       eta, 
                                       compute.log.likelihood=TRUE) 
+```
 
-## Visualize fitted model with LDAvis
+```{r visualize-model}
 theta <- t(apply(result$document_sums + alpha, 2, function(x) x/sum(x)))
 phi <- t(apply(t(result$topics) + eta, 2, function(x) x/sum(x)))
 doc.length <- sapply(ourDocs, function(x) sum(x[2, ])) 
@@ -63,3 +132,4 @@ json <- createJSON(phi = visobj$phi,
                    vocab = visobj$vocab, 
                    term.frequency = visobj$term.frequency)
 serVis(json)
+```
