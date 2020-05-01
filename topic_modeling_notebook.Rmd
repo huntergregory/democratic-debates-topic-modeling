@@ -40,6 +40,8 @@ theme_set(theme_bw())
 ```{r load-data}
 og20 = read.csv("debate_transcripts_v3_2020-02-26.csv")
 data20 = read.csv("debates_2020_updated.csv")
+data20 <- data20[!grepl("Speaker", data20$speaker),]
+
 dictionaryData = read.csv("dictionary.csv")
 ourVocabDict = list() ## NOTE, this is the 0-index of the word, not 1-indexed like in R
 for (k in 1:nrow(dictionaryData)) {
@@ -164,6 +166,7 @@ for (i in seq(1, length(top3)-1, 2)){
 
 ```{r proportion-responses}
 perc_response <- num_same/length(top3)
+perc_response
 ```
 
 ```{r topic_model-moderators}
@@ -240,3 +243,8 @@ json <- createJSON(phi = visobj$phi,
 serVis(json)
 
 ```
+
+```{r biden-topic-model}
+
+```
+
