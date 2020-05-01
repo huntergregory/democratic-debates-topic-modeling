@@ -98,7 +98,7 @@ for (k in 1:length(doc_list)) {
 ```
 
 ```{r modeling}
-K <- 20 ## No. topics
+K <- 15 ## No. topics
 S <- 1000 ## No. iterations
 alpha <- 0.1 ## scalar Dirichlet hyperparameter for topic proportions
 eta <- 0.1 ## scalar Dirichlet hyperparameter for word proportions
@@ -132,4 +132,111 @@ json <- createJSON(phi = visobj$phi,
                    vocab = visobj$vocab, 
                    term.frequency = visobj$term.frequency)
 serVis(json)
+```
+
+```{r mode-function}
+Mode <- function(x) {
+  ux <- unique(x)
+  m1 <- ux[which.max(tabulate(match(x, ux)))]
+  x <- x[x!=m1]
+  ux <- unique(x)
+  m2 <- ux[which.max(tabulate(match(x, ux)))]
+  x <- x[x!=m1 & x!= m2]
+  ux <- unique(x)
+  m3 <- ux[which.max(tabulate(match(x, ux)))]
+  c(m1,m2,m3)
+}
+```
+
+```{r assignments-per-doc}
+top3 <- lapply(result$assignments, Mode)
+
+num_same <- 0
+size_same <- 0
+for (i in seq(1, length(top3)-1, 2)){
+  overlap <- intersect(top3[[i]], top3[[i+1]])
+  if (length(overlap) > 0){
+    num_same <- num_same + 1
+    size_same <- size_same + length(overlap)
+  }
+} 
+```
+
+```{r proportion-responses}
+perc_response <- num_same/length(top3)
+```
+
+```{r topic_model-moderators}
+ourDocsMods <- ourDocs[seq(1,length(ourDocs),2)]
+
+K <- 15 ## No. topics
+S <- 1000 ## No. iterations
+alpha <- 0.1 ## scalar Dirichlet hyperparameter for topic proportions
+eta <- 0.1 ## scalar Dirichlet hyperparameter for word proportions
+set.seed(8675309)
+result <- lda.collapsed.gibbs.sampler(ourDocsMods, # corpus documents
+                                      K,  ## No. topics
+                                      ourVocab, # corpus vocabulary
+                                      S,  ## No. iterations
+                                      alpha, 
+                                      eta, 
+                                      compute.log.likelihood=TRUE) 
+theta <- t(apply(result$document_sums + alpha, 2, function(x) x/sum(x)))
+phi <- t(apply(t(result$topics) + eta, 2, function(x) x/sum(x)))
+doc.length <- sapply(ourDocsMods, function(x) sum(x[2, ])) 
+term.frequency <- rep(0,length(ourVocab))
+for (ii in 1:length(ourDocsMods)){
+  term.frequency[ourDocsMods[[ii]][1,]+1] <- term.frequency[ourDocsMods[[ii]][1,]+1] + ourDocsMods[[ii]][2,]
+}
+
+visobj <- list(phi = phi,
+               theta = theta,
+               doc.length = doc.length,
+               vocab = ourVocab,
+               term.frequency = term.frequency)
+json <- createJSON(phi = visobj$phi, 
+                   theta = visobj$theta, 
+                   doc.length = visobj$doc.length, 
+                   vocab = visobj$vocab, 
+                   term.frequency = visobj$term.frequency)
+serVis(json)
+
+```
+
+
+```{r topic_model-candidates}
+ourDocsCands <- ourDocs[seq(2,length(ourDocs)-1,2)]
+
+K <- 15 ## No. topics
+S <- 1000 ## No. iterations
+alpha <- 0.1 ## scalar Dirichlet hyperparameter for topic proportions
+eta <- 0.1 ## scalar Dirichlet hyperparameter for word proportions
+set.seed(8675309)
+result <- lda.collapsed.gibbs.sampler(ourDocsCands, # corpus documents
+                                      K,  ## No. topics
+                                      ourVocab, # corpus vocabulary
+                                      S,  ## No. iterations
+                                      alpha, 
+                                      eta, 
+                                      compute.log.likelihood=TRUE) 
+theta <- t(apply(result$document_sums + alpha, 2, function(x) x/sum(x)))
+phi <- t(apply(t(result$topics) + eta, 2, function(x) x/sum(x)))
+doc.length <- sapply(ourDocsCands, function(x) sum(x[2, ])) 
+term.frequency <- rep(0,length(ourVocab))
+for (ii in 1:length(ourDocsCands)){
+  term.frequency[ourDocsCands[[ii]][1,]+1] <- term.frequency[ourDocsCands[[ii]][1,]+1] + ourDocsCands[[ii]][2,]
+}
+
+visobj <- list(phi = phi,
+               theta = theta,
+               doc.length = doc.length,
+               vocab = ourVocab,
+               term.frequency = term.frequency)
+json <- createJSON(phi = visobj$phi, 
+                   theta = visobj$theta, 
+                   doc.length = visobj$doc.length, 
+                   vocab = visobj$vocab, 
+                   term.frequency = visobj$term.frequency)
+serVis(json)
+
 ```
